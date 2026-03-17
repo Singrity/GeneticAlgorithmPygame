@@ -20,7 +20,7 @@ class App:
 		self.network_size = 30
 
 		self.network = Network(start_node_idx=0, end_node_idx=29, size=self.network_size) # create a network with 30 nodes
-		self.genetic_algorithm = GA(network=self.network, population_size=self.population_size, generations=self.generations, mutation_rate=self.mutation_rate, chromosome_length=self.network_size * 2) # initialize the genetic algorithm with the network
+		self.genetic_algorithm = GA(network=self.network, population_size=self.population_size, generations=self.generations, mutation_rate=self.mutation_rate) # initialize the genetic algorithm with the network
 		self.control_panel = ControlPanel(
 			panel_pos=pygame.Vector2(width - width // 3, 0),
 			panel_size=pygame.Vector2(width // 3, height),
@@ -96,7 +96,7 @@ class App:
 					self.is_running = True
 
 					# Update adaptive mutation setting
-					self.genetic_algorithm.adaptive_mutation_enabled = adaptive_mutation
+					#self.genetic_algorithm.adaptive_mutation_enabled = adaptive_mutation
 
 					# Update network size if changed
 					if network_size != self.network.size:
@@ -128,9 +128,8 @@ class App:
 						population_size=self.population_size,
 						generations=self.generations,
 						mutation_rate=mutation_rate,
-						chromosome_length=self.network_size
-					)
-					self.genetic_algorithm.adaptive_mutation_enabled = adaptive_mutation
+						)
+					#self.genetic_algorithm.adaptive_mutation_enabled = adaptive_mutation
 				elif clicked_button == "Exit":
 					self.running = False
 					pygame.quit()

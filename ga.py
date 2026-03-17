@@ -1,42 +1,49 @@
 import random
 from time import sleep, time
-
+from network import Network
 import pygame
 from chromosome import Chromosome
 
 class GA:
-    def __init__(self, network, population_size=10, generations=50, mutation_rate=0.01, chromosome_length=None):
+    def __init__(self,
+                network: Network,
+                population_size: int = 10,
+                generations: int = 50,
+                mutation_rate: float = 0.01,
+    ):
         self.network = network
         self.population_size = population_size
         self.generations = generations
         self.base_mutation_rate = mutation_rate
         self.mutation_rate = mutation_rate
-        self.chromosome_length = chromosome_length if chromosome_length else network.size
-        self.population = self.initialize_population()
+        self.chromosome_length = self.network.size
         self.current_generation_number = 0
+
+        self.population = self.initialize_population()
+
         # evaluate initial population and set best
         self.evaluate_population()
         self.best_chromosome = min(self.population, key=lambda chromosome: chromosome.fitness)
-        self.best_fitness_ever = self.best_chromosome.fitness  # Track best fitness ever found
-        self.mutation_count = 0
+        #self.best_fitness_ever = self.best_chromosome.fitness  # Track best fitness ever found
+        #self.mutation_count = 0
         self.generations_without_improvement = 0  # Track stagnation
-        self.adaptive_mutation_enabled = False
+        #self.adaptive_mutation_enabled = False
+
+        self.base_probability = 0.5  # Base probability for selection methods
 
     def create_random_chromosome(self):
-        # Create chromosome with random nodes (duplicates ALLOWED)
         actual_length = min(self.chromosome_length, self.network.size)
-        # All nodes except start and end can be visited multiple times
         available_nodes = list(range(self.network.size))
-        available_nodes.remove(self.network.get_start_node().idx)
-        available_nodes.remove(self.network.get_end_node().idx)
+
+        start_node = self.network.start_node_idx
+        end_node = self.network.end_node_idx
         
+        genes = [start_node] + [random.choice(available_nodes) for _ in range(actual_length - 2)] + [end_node]
         # Randomly select nodes with replacement (duplicates allowed)
-        middle_genes = [random.choice(available_nodes) for _ in range(actual_length - 2)]
-        genes = [self.network.get_start_node().idx] + middle_genes + [self.network.get_end_node().idx]
         return Chromosome(genes) # path through the network
 
     def initialize_population(self):
-        return[self.create_random_chromosome() for _ in range(self.population_size)]
+        return [self.create_random_chromosome() for _ in range(self.population_size)]
 
     def fitness(self, chromosome):
         total_distance = 0
@@ -53,51 +60,82 @@ class GA:
 
     ### Selection, Crossover, Mutation methods ###
 
-    def selection(self):
-        # Select the best 50% of the population based on fitness
-        self.population.sort(key=lambda chromosome: chromosome.fitness)
-        return self.population[:self.population_size // 2]
+    def proportional_selection(self, current_population, current_best_fitness):
+        for chromosome in current_population:
+            chromosome.probability = 1 / (1 + chromosome.fitness - current_best_fitness)
+        
+        parents = [chromosome for chromosome in current_population if random.random() < chromosome.probability]
 
-    def crossover(self, parent1, parent2):
-        """
-        Simple crossover - allows duplicates.
-        """
-        # Use minimum length to avoid index out of bounds
-        min_len = min(len(parent1.genes), len(parent2.genes))
-        if min_len <= 2:
-            return Chromosome(parent1.genes[:])
+        return parents
+
+    def tournament_selection(self, current_population, tournament_size=3):
+        for chromosome in current_population:
+            chromosome.probability = 1 - (1 - self.base_probability) ** tournament_size
         
-        # Keep start and end nodes fixed
-        start_node = parent1.genes[0]
-        end_node = parent1.genes[-1]
+        parents = [chromosome for chromosome in current_population if random.random() < chromosome.probability]
+
+        return parents
+
+    def rang_selection(self, current_population):
+        """population_should_be_sorted_by_fitness"""
+        for rang, chromosome in enumerate(current_population):
+            chromosome.probability = 2 * (self.population_size - rang + 1) / (self.population_size * (self.population_size + 1))
         
-        # Simple crossover: take first part from parent1, rest from parent2
-        point = random.randint(1, min_len - 2)
-        child_genes = parent1.genes[:point] + parent2.genes[point:]
+        parents = [chromosome for chromosome in current_population if random.random() < chromosome.probability]
+        return parents
+
+    def one_point_crossover(self, current_population):
+        parent1 = random.choice(current_population)
+        parent2 = random.choice(current_population)
         
-        # Ensure start and end are correct
-        child_genes[0] = start_node
-        child_genes[-1] = end_node
+        if parent1 == parent2:
+            return self.one_point_crossover(current_population)  # Ensure different parents
         
+        crossover_point = random.randint(1, self.chromosome_length - 2)
+
+        child_genes = [parent1.genes[self.network.start_node_idx]] + parent1.genes[self.network.start_node_idx:crossover_point] + parent2.genes[crossover_point:self.network.end_node_idx] + [parent1.genes[self.network.end_node_idx]] 
+
         return Chromosome(child_genes)
 
-    def mutate(self, chromosome):
-        """
-        Random reset mutation - replaces a gene with a random node (duplicates allowed).
-        This allows the algorithm to discover that visiting the same node multiple times can have 0 cost.
-        """
-        chrom_len = len(chromosome.genes)
-        if chrom_len <= 2:
-            return chromosome
+    def two_point_crossover(self, current_population):
+        parent1 = random.choice(current_population)
+        parent2 = random.choice(current_population)
+        
+        if parent1 == parent2:
+            return self.two_point_crossover(current_population)  # Ensure different parents
+        
+        point1 = random.randint(0, self.chromosome_length - 2)
+        point2 = random.randint(point1 + 1, self.chromosome_length - 1)
+        
+        child_genes = parent1.genes[:point1] + parent2.genes[point1:point2] + parent1.genes[point2:]
 
-        # Get ALL nodes including start (0) and end (29) - this allows cycles!
-        available_nodes = list(range(self.network.size))
+        return Chromosome(child_genes)
+    
+    def uniform_crossover(self, current_population):
+        parent1 = random.choice(current_population)
+        parent2 = random.choice(current_population)
         
-        # Mutate ONE random gene (simple swap mutation)
-        idx = random.randint(1, chrom_len - 2)
-        chromosome.genes[idx] = random.choice(available_nodes)
+        if parent1 == parent2:
+            return self.uniform_crossover(current_population)  # Ensure different parents
         
-        return chromosome
+        child_genes = []
+        for gene1, gene2 in zip(parent1.genes, parent2.genes):
+            child_genes.append(gene1 if random.random() < 0.5 else gene2)
+
+        return Chromosome(child_genes)
+
+    def bit_flip_mutation(self, children):
+        nodes = list(range(self.network.size))
+        for i in range(1, len(children.genes) - 1):  # Skip start and end nodes
+            children.genes[i] = random.choice(nodes)
+        return children
+
+    def gaussian_mutation(self, children ,mean=0, stddev=1):
+        for i in range(len(children.genes)):
+            mutation_value = int(random.gauss(mean, stddev))
+            children.genes[i] = (children.genes[i] + mutation_value) % self.network.size
+        return children
+
 
     def reduction(self, population):
         population.sort(key=lambda chromosome: chromosome.fitness)
@@ -177,65 +215,81 @@ class GA:
             return
 
         # Evaluate current population
-        self.evaluate_population()
-        self.first_population = self.population.copy()
+        #self.evaluate_population()
+        #self.first_population = self.population.copy()
 
         # Check population diversity
-        diversity = self.calculate_diversity()
+        #diversity = self.calculate_diversity()
 
         # If population too similar, inject random immigrants
-        if diversity < 0.15:  # Less than 15% diversity
-            self.inject_random_immigrants(immigrants_count=max(1, self.population_size // 4))
+#        if diversity < 0.15:  # Less than 15% diversity
+ #           self.inject_random_immigrants(immigrants_count=max(1, self.population_size // 4))
 
         # Get current best chromosome
-        current_best = min(self.population, key=lambda chromosome: chromosome.fitness)
+  #      current_best = min(self.population, key=lambda chromosome: chromosome.fitness)
 
         # Check if we found a better solution
-        if current_best.fitness < self.best_fitness_ever:
-            self.best_fitness_ever = current_best.fitness
-            self.best_chromosome = Chromosome(current_best.genes[:])
-            self.best_chromosome.fitness = current_best.fitness
-            self.generations_without_improvement = 0  # Reset counter
-        else:
-            self.generations_without_improvement += 1
-
+  #      if current_best.fitness < self.best_fitness_ever:
+ #           self.best_fitness_ever = current_best.fitness
+  #          self.best_chromosome = Chromosome(current_best.genes[:])
+  #          self.best_chromosome.fitness = current_best.fitness
+  #          self.generations_without_improvement = 0  # Reset counter
+  #      else:
+  #          self.generations_without_improvement += 1
+##
         # Adaptive mutation: only if enabled via toggle
-        if self.adaptive_mutation_enabled:
-            if self.generations_without_improvement > 1000:
-                multiplier = self.generations_without_improvement / 1000
-                self.mutation_rate = min(0.5, self.base_mutation_rate * multiplier)
-            else:
-                self.mutation_rate = self.base_mutation_rate
-        else:
-            # Adaptive mutation disabled - use base rate only
-            self.mutation_rate = self.base_mutation_rate
-
-        selected = self.selection()
+        # if self.adaptive_mutation_enabled:
+        #     if self.generations_without_improvement > 1000:
+        #         multiplier = self.generations_without_improvement / 1000
+        #         self.mutation_rate = min(0.5, self.base_mutation_rate * multiplier)
+        #     else:
+        #         self.mutation_rate = self.base_mutation_rate
+        # else:
+        #     # Adaptive mutation disabled - use base rate only
+        #     self.mutation_rate = self.base_mutation_rate
 
         new_population = []
+        selected_parrents = self.proportional_selection(self.population, self.best_chromosome.fitness)
 
-        # Elitism: preserve the best chromosome in the next generation (always first)
-        elite_copy = Chromosome(self.best_chromosome.genes[:])
-        elite_copy.fitness = self.best_chromosome.fitness
-        new_population.append(elite_copy)
-
-        # Create population_size - 1 children (elite takes 1 spot)
         while len(new_population) < self.population_size:
-            parent1, parent2 = random.sample(selected, 2)
-            child = self.crossover(parent1, parent2)
-
-            # Apply mutation to EVERY chromosome with probability mutation_rate
+            if len(selected_parrents) < 2:
+                selected_parrents = self.proportional_selection(self.population, self.best_chromosome.fitness)
+                continue
+            child = self.one_point_crossover(selected_parrents)
             if random.random() < self.mutation_rate:
-                child = self.mutate(child)
-                self.mutation_count += 1
-
+                child = self.bit_flip_mutation(child)
             new_population.append(child)
 
-        # Don't use reduction here - we already have exactly population_size
-        # and elite is guaranteed to be first
+        
         self.population = new_population
         self.evaluate_population()
         self.best_chromosome = min(self.population, key=lambda chromosome: chromosome.fitness)
+
+
+        # new_population = []
+
+        # # Elitism: preserve the best chromosome in the next generation (always first)
+        # elite_copy = Chromosome(self.best_chromosome.genes[:])
+        # elite_copy.fitness = self.best_chromosome.fitness
+        # new_population.append(elite_copy)
+
+        # # Create population_size - 1 children (elite takes 1 spot)
+        # while len(new_population) < self.population_size:
+        #     parent1, parent2 = random.sample(selected, 2)
+        #     child = self.crossover(parent1, parent2)
+
+        #     # Apply mutation to EVERY chromosome with probability mutation_rate
+        #     if random.random() < self.mutation_rate:
+        #         child = self.mutate(child)
+        #         self.mutation_count += 1
+
+        #     new_population.append(child)
+
+        # Don't use reduction here - we already have exactly population_size
+        # and elite is guaranteed to be first
+        #self.population = new_population
+        #self.evaluate_population()
+        #self.best_chromosome = min(self.population, key=lambda chromosome: chromosome.fitness)
 
         # increment generation counter
         self.current_generation_number += 1
@@ -272,4 +326,15 @@ class GA:
         print(f"  → Injected {immigrants_count} immigrants (diversity={self.calculate_diversity():.2f})")
             
             
-            
+pygame.font.init()
+
+network = Network(
+    0, 1, 20
+)
+ga = GA(
+    network=network
+)
+
+
+print(ga.population)
+
