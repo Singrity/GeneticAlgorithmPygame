@@ -19,10 +19,10 @@ class Network:
 
     def generate_network(self):
         # Create nodes arranged evenly around a circle inside the bounding box
-        left = 50
-        top = 50
-        right = 750
-        bottom = 750
+        left = 100
+        top = 30
+        right = 1050
+        bottom = 1050
 
         cx = (left + right) / 2
         cy = (top + bottom) / 2
@@ -80,6 +80,19 @@ class Network:
     
     def get_end_node(self):
         return self.nodes[self.end_node_idx]
+
+    def reset(self):
+        self.nodes = []
+        self.edges = []
+        self.graph = []
+        self.generate_network()
+
+    def update_size(self, new_size):
+        self.size = new_size
+        # Recalculate start and end indices to be valid for the new size
+        self.start_node_idx = 0
+        self.end_node_idx = max(1, new_size - 1)  # Last node index
+        self.reset()
         
 
 

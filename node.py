@@ -8,7 +8,7 @@ class Node:
         self.x = x
         self.y = y
         self.rect = pygame.Rect(x - 10, y - 10, 20, 20) # create a rectangle for the node
-        self.color = (0, 0, 170)
+        self.color = (0, 130, 170)
         self.font = pygame.font.SysFont('Arial', 16)
 
     def draw(self, screen):
@@ -20,6 +20,7 @@ class Node:
             self.color = (0, 0, 170) # blue for other nodes
 
 
+        # Draw anti-aliased circle
         pygame.draw.circle(screen, self.color, self.rect.center, 20) # draw node as a blue circle
         self.render_text(screen, str(self.idx)) # render node index as text
 

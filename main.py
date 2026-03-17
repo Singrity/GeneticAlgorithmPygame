@@ -5,35 +5,64 @@ from control_panel import ControlPanel
 from button import Button
 
 class App:
-	def __init__(self, width=800, height=1000):
+	def __init__(self, width=1920, height=1080):
 		pygame.init()
 		pygame.font.init()
 		self.screen = pygame.display.set_mode((width, height))
 		self.clock = pygame.time.Clock()
 		self.running = True
-		self.network = Network(start_node_idx=0, end_node_idx=29, size=30) # create a network with 10 nodes
-		self.genetic_algorithm = GA(network=self.network, population_size=20, generations=100, mutation_rate=0.3, chromosome_length=30) # initialize the genetic algorithm with the network
-		self.control_panel = ControlPanel()
+		self.is_running = False  # Flag to track if algorithm is running
+
+		# Default GA parameters
+		self.population_size = 20
+		self.generations = 100
+		self.mutation_rate = 0.3
+		self.network_size = 30
+
+		self.network = Network(start_node_idx=0, end_node_idx=29, size=self.network_size) # create a network with 30 nodes
+		self.genetic_algorithm = GA(network=self.network, population_size=self.population_size, generations=self.generations, mutation_rate=self.mutation_rate, chromosome_length=self.network_size * 2) # initialize the genetic algorithm with the network
+		self.control_panel = ControlPanel(
+			panel_pos=pygame.Vector2(width - width // 3, 0),
+			panel_size=pygame.Vector2(width // 3, height),
+			graphic_pos=pygame.Vector2(20, 500),
+			graphic_size=pygame.Vector2(500, 200),
+			input_size=pygame.Vector2(150, 30),
+			button_size=pygame.Vector2(150, 35),
+			initial_population_size=self.population_size,
+			initial_generations=self.generations,
+			initial_mutation_rate=self.mutation_rate,
+			initial_network_size=self.network_size
+		)
 
 	
 
 	def draw(self):
+		self.screen.fill((230, 230, 230)) # clear screen with white background
 
-		self.screen.fill((255, 255, 255)) # clear screen with white background
-
-		self.control_panel.draw(self.screen) # draw the control panel
-		self.genetic_algorithm.draw_best_path(self.screen) # draw the best path found by the genetic algorithm
+		mouse_pos = pygame.mouse.get_pos() if pygame.display.get_surface() else (0, 0)
+		self.control_panel.draw(self.screen, mouse_pos) # draw the control panel
+		self.genetic_algorithm.draw_population_size(self.screen) # draw the population size on the screen
 		self.genetic_algorithm.draw_best_fitness(self.screen) # draw the best fitness value on the screen
-		self.genetic_algorithm.deaw_current_generation_number(self.screen) # draw the current generation number on the screen
+		self.genetic_algorithm.draw_current_generation_number(self.screen) # draw the current generation number on the screen
+		self.genetic_algorithm.draw_mutation_rate(self.screen) # draw the mutation rate
+		self.genetic_algorithm.draw_stagnation_counter(self.screen) # draw stagnation counter
 		self.network.draw(self.screen) # draw the network
+		self.genetic_algorithm.draw_best_path(self.screen) # draw the best path found by the genetic algorithm
 
 
 	def update(self):
-		
+		# Only update graph and run algorithm if running and not at limit
+		if self.is_running and self.genetic_algorithm.current_generation_number < self.genetic_algorithm.generations:
+			self.control_panel.graphic.best_fitness.append(self.genetic_algorithm.best_chromosome.fitness)
+			self.genetic_algorithm.run_algorithm()
 
-		if self.genetic_algorithm.current_generation_number < self.genetic_algorithm.generations:
-			self.genetic_algorithm.run_algorithm() # run the genetic algorithm to find the best path
-		self.control_panel.update(pygame.mouse.get_pos()) # update control panel buttons based on mouse position
+		# Stop if we've reached the generation limit
+		if self.genetic_algorithm.current_generation_number >= self.genetic_algorithm.generations:
+			self.is_running = False
+
+		# Update control panel buttons based on mouse position
+		mouse_pos = pygame.mouse.get_pos() if pygame.display.get_surface() else (0, 0)
+		self.control_panel.update(mouse_pos)
 		pygame.display.flip() # update the display
 
 		self.clock.tick(60) # limit to 60 frames per second
@@ -49,19 +78,70 @@ class App:
 					self.running = False
 					pygame.quit()
 					return
+				# Handle keyboard input for active input fields
+				if self.control_panel.handle_key(event):
+					continue
 			if event.type == pygame.MOUSEBUTTONDOWN:
-				clicked_button = self.control_panel.handle_click(pygame.mouse.get_pos())
+				mouse_pos = pygame.mouse.get_pos() if pygame.display.get_surface() else (0, 0)
+				clicked_button = self.control_panel.handle_click(mouse_pos)
 				if clicked_button == "Start":
-					self.genetic_algorithm.current_generation_number = 0
+					# Apply input values when starting
+					input_values = self.control_panel.get_input_values()
+					network_size = int(input_values["network_size"])
+					mutation_rate = float(input_values["mutation_rate"])
+					adaptive_mutation = input_values["adaptive_mutation"]
+
+					# Clear graph and reset state
+					self.control_panel.graphic.best_fitness = []
+					self.is_running = True
+
+					# Update adaptive mutation setting
+					self.genetic_algorithm.adaptive_mutation_enabled = adaptive_mutation
+
+					# Update network size if changed
+					if network_size != self.network.size:
+						self.network.update_size(network_size)
+						self.genetic_algorithm.network = self.network
+						self.genetic_algorithm.chromosome_length = network_size
+						self.genetic_algorithm.population = self.genetic_algorithm.initialize_population()
+						self.genetic_algorithm.current_generation_number = 0
+						self.genetic_algorithm.generations = int(input_values["generations"])
+						self.genetic_algorithm.base_mutation_rate = mutation_rate
+						self.genetic_algorithm.mutation_rate = mutation_rate
+					else:
+						self.genetic_algorithm.population_size = int(input_values["population_size"])
+						self.genetic_algorithm.generations = int(input_values["generations"])
+						self.genetic_algorithm.base_mutation_rate = mutation_rate
+						self.genetic_algorithm.mutation_rate = mutation_rate
+						self.genetic_algorithm.current_generation_number = 0
 				elif clicked_button == "Reset":
-					self.genetic_algorithm.reset() # TODO implement reset method in GA class to reinitialize the population and reset generation number
+					# Clear graph and reset everything
+					self.control_panel.graphic.best_fitness = []
+					self.is_running = False
+					self.network.reset()
+					# Get current values from inputs
+					input_values = self.control_panel.get_input_values()
+					mutation_rate = float(input_values["mutation_rate"])
+					adaptive_mutation = input_values["adaptive_mutation"]
+					self.genetic_algorithm = GA(
+						network=self.network,
+						population_size=self.population_size,
+						generations=self.generations,
+						mutation_rate=mutation_rate,
+						chromosome_length=self.network_size
+					)
+					self.genetic_algorithm.adaptive_mutation_enabled = adaptive_mutation
+				elif clicked_button == "Exit":
+					self.running = False
+					pygame.quit()
+					return
 
 	def run(self):
 		while self.running:
 			self.handle_events()
-			self.update()
-			self.draw()		
-			
+			if self.running:  # Check if still running after handling events
+				self.update()
+				self.draw()
 
 		pygame.quit()
 		return

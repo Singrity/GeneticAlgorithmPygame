@@ -8,14 +8,13 @@ class Edge:
         self.font = pygame.font.SysFont('Arial', 16)
 
     def draw(self, screen):
-        # draw edge line between node centers
+        # draw anti-aliased edge line between node centers
         a_pos = self.node_a.rect.center
         b_pos = self.node_b.rect.center
-        
 
         # render weight and center the text at the midpoint
         self.render_text(screen, str(self.weight))
-        pygame.draw.line(screen, (0, 0, 0), a_pos, b_pos, 1)
+        pygame.draw.aaline(screen, (190, 190, 190), a_pos, b_pos)
 
     def render_text(self, screen, text):
         text_surface = self.font.render(text, True, (0, 0, 200))
