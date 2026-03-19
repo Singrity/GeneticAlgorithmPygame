@@ -3,6 +3,23 @@ from time import sleep, time
 from network import Network
 import pygame
 from chromosome import Chromosome
+from enum import Enum, auto
+
+class SelectionType(Enum):
+    PROPORTIONAL = auto()
+    TOURNAMENT = auto()
+    RANG = auto()
+
+class CrossoverType(Enum):
+    ONE_POINT = auto()
+    TWO_POINT = auto()
+    UNIFORM = auto()
+
+class MutationType(Enum):
+    BIT_FLIP = auto()
+    GAUSSIAN = auto()
+
+
 
 class GA:
     def __init__(self,
@@ -10,7 +27,15 @@ class GA:
                 population_size: int = 10,
                 generations: int = 50,
                 mutation_rate: float = 0.01,
+                selection_type: SelectionType = SelectionType.PROPORTIONAL,
+                crossover_type: CrossoverType = CrossoverType.ONE_POINT,
+                mutation_type: MutationType = MutationType.BIT_FLIP
     ):
+
+        self.selection_type = selection_type
+        self.crossover_type = crossover_type
+        self.mutation_type = mutation_type       
+
         self.network = network
         self.population_size = population_size
         self.generations = generations
@@ -30,6 +55,8 @@ class GA:
         #self.adaptive_mutation_enabled = False
 
         self.base_probability = 0.5  # Base probability for selection methods
+
+        self.is_running = False
 
     def create_random_chromosome(self):
         actual_length = min(self.chromosome_length, self.network.size)
@@ -130,8 +157,14 @@ class GA:
         if parent1 == parent2:
             return self.two_point_crossover(current_population)  # Ensure different parents
         
-        point1 = random.randint(0, self.chromosome_length - 2)
-        point2 = random.randint(point1 + 1, self.chromosome_length - 1)
+
+        point1 = random.randint(1, self.chromosome_length - 2)
+        point2 = random.randint(1, self.chromosome_length - 2)
+
+        while point1 == point2:
+            point1 = random.randint(1, self.chromosome_length - 2)
+            point2 = random.randint(1, self.chromosome_length - 2)
+
         
         child_genes = parent1.genes[:point1] + parent2.genes[point1:point2] + parent1.genes[point2:]
 
@@ -157,7 +190,7 @@ class GA:
         return children
 
     def gaussian_mutation(self, children ,mean=0, stddev=1):
-        for i in range(len(children.genes)):
+        for i in range(1, len(children.genes) - 1):
             mutation_value = int(random.gauss(mean, stddev))
             children.genes[i] = (children.genes[i] + mutation_value) % self.network.size
         return children
@@ -170,13 +203,20 @@ class GA:
     def draw_best_path(self, screen):
         best_chromosome = min(self.population, key=lambda chromosome: chromosome.fitness)
         font = pygame.font.SysFont('Arial', 20)
-
+        same_node_count = 0
         for i in range(len(best_chromosome.genes) - 1):
             node_a = self.network.nodes[best_chromosome.genes[i]]
             node_b = self.network.nodes[best_chromosome.genes[i + 1]]
-
+            
+            if node_a == node_b:
+                same_node_count += 1
+                for i in range(same_node_count):
+                    radius = node_a.rect.width + 5 + i * 3
+                    pygame.draw.circle(screen, (100, 100, 100), node_a.rect.center, radius, 2)
+            else:
+                same_node_count = 0
             # Draw anti-aliased edge line
-            pygame.draw.aaline(screen, (255, 0, 0), node_a.rect.center, node_b.rect.center, 5)
+                pygame.draw.aaline(screen, (255, 0, 0), node_a.rect.center, node_b.rect.center, 5)
 
             # Get weight from graph
             weight = self.network.graph[best_chromosome.genes[i]][best_chromosome.genes[i + 1]]
@@ -236,23 +276,51 @@ class GA:
         self.best_fitness_ever = self.best_chromosome.fitness
 
     def run_algorithm(self):
+
+        self.is_running = True
         # Advance a single generation each call so the main loop can control updates
         if self.current_generation_number >= self.generations:
+            self.is_running = False
             return
 
 
         new_population = []
-        selected_parrents = self.tournament_selection(self.population, self.best_chromosome.fitness)
+
+        match self.selection_type:
+            case SelectionType.PROPORTIONAL:
+                selected_parrents = self.proportional_selection(self.population, self.best_chromosome.fitness)
+            case SelectionType.TOURNAMENT:
+                selected_parrents = self.tournament_selection(self.population, self.best_chromosome.fitness)
+            case SelectionType.RANG:
+                selected_parrents = self.rang_selection(self.population)
+        
+
         best_chromosome = min(self.population, key=lambda chrom: chrom.fitness)
         new_population.append(best_chromosome)
 
         while len(new_population) < self.population_size:
             if len(selected_parrents) < 2:
-                selected_parrents = self.proportional_selection(self.population, self.best_chromosome.fitness)
+                match self.selection_type:
+                    case SelectionType.PROPORTIONAL:
+                        selected_parrents = self.proportional_selection(self.population, self.best_chromosome.fitness)
+                    case SelectionType.TOURNAMENT:
+                        selected_parrents = self.tournament_selection(self.population, self.best_chromosome.fitness)
+                    case SelectionType.RANG:
+                        selected_parrents = self.rang_selection(self.population)
                 continue
-            child = self.one_point_crossover(selected_parrents)
+            match self.crossover_type:
+                case CrossoverType.ONE_POINT:
+                    child = self.one_point_crossover(selected_parrents)
+                case CrossoverType.TWO_POINT:
+                    child = self.two_point_crossover(selected_parrents)
+                case CrossoverType.UNIFORM:
+                    child = self.uniform_crossover(selected_parrents)
             if random.random() < self.mutation_rate:
-                child = self.bit_flip_mutation(child)
+                match self.mutation_type:
+                    case MutationType.BIT_FLIP:
+                        child = self.bit_flip_mutation(child)
+                    case MutationType.GAUSSIAN:
+                        child = self.gaussian_mutation(child)
             new_population.append(child)
 
         
@@ -296,15 +364,5 @@ class GA:
         print(f"  → Injected {immigrants_count} immigrants (diversity={self.calculate_diversity():.2f})")
             
             
-pygame.font.init()
 
-network = Network(
-    0, 1, 20
-)
-ga = GA(
-    network=network
-)
-
-
-print(ga.population)
-
+   

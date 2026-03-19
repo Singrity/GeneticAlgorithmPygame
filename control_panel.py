@@ -74,12 +74,17 @@ class ControlPanel:
         # Add buttons
         button_y = current_y
         self._add_button("Start", button_size, padding_x, button_y)
-        self._add_button("Reset", button_size, padding_x + button_size.x + spacing, button_y)
+        self._add_button("Stop", button_size, padding_x + button_size.x + spacing, button_y)
+        self._add_button("Reset", button_size, padding_x + (button_size.x + spacing) * 2, button_y)
         button_y += button_size.y + spacing
-        self._add_button("Exit", button_size, padding_x, button_y)
+        self._add_button("Apply", button_size, padding_x, button_y)
+        self._add_button("Exit", button_size, padding_x + button_size.x + spacing, button_y)
+
         
         # Initialize graphic (fitness graph)
         self.graphic = Graphic(graphic_pos.x, graphic_pos.y, int(graphic_size.x), int(graphic_size.y))
+
+        self._add_button("Clear", button_size, padding_x, self.graphic.rect.bottom)
 
     def _add_input(self, label, value, size, x, y, is_integer=False, min_value=None, max_value=None):
         input_field = Input(

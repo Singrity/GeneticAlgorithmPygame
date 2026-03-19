@@ -7,7 +7,6 @@ class Graphic:
         self.best_fitness = []
 
     def draw(self, surface):
-        # Clear background first
         surface.fill((255, 255, 255), self.rect)
 
         if len(self.best_fitness) < 2:
@@ -28,3 +27,6 @@ class Graphic:
             x2 = self.rect.left + i / (len(self.best_fitness) - 1) * self.rect.width
             y2 = self.rect.bottom - ((self.best_fitness[i] - min_fitness) / fitness_range * self.rect.height)
             pygame.draw.aaline(surface, (255, 0, 0), (x1, y1), (x2, y2))
+
+    def clear(self):
+        self.best_fitness = []

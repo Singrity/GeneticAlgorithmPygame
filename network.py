@@ -1,5 +1,7 @@
 import random
 import math
+
+import pygame
 from node import Node
 from edge import Edge   
 
@@ -15,14 +17,17 @@ class Network:
         self.end_node_idx = end_node_idx
         self.edges = []
         self.graph = []
+
+
         self.generate_network()
 
     def generate_network(self):
         # Create nodes arranged evenly around a circle inside the bounding box
+
         left = 100
         top = 30
-        right = 1050
-        bottom = 1050
+        right = 900
+        bottom = 900
 
         cx = (left + right) / 2
         cy = (top + bottom) / 2
