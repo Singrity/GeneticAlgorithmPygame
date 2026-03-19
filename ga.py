@@ -61,14 +61,37 @@ class GA:
     ### Selection, Crossover, Mutation methods ###
 
     def proportional_selection(self, current_population, current_best_fitness):
+        fitness_values = [chromosome.fitness for chromosome in current_population]
+        min_fitness = min(fitness_values)
+        max_fitness = max(fitness_values)
+
+        fitness_range = max_fitness - min_fitness if max_fitness != min_fitness else 1
+
         for chromosome in current_population:
-            chromosome.probability = 1 / (1 + chromosome.fitness - current_best_fitness)
+            normalized_fitness = (chromosome.fitness - min_fitness) / fitness_range
+            chromosome.probability = 1.0 - (0.8 * normalized_fitness)
         
         parents = [chromosome for chromosome in current_population if random.random() < chromosome.probability]
 
+        while len(parents) < 2:
+            random_chromosome = random.choice(current_population)
+            if random_chromosome not in parents:
+                parents.append(random_chromosome)
+
         return parents
 
-    def tournament_selection(self, current_population, tournament_size=3):
+    def tournament_selection(self, current_population, tournament_size=5):
+
+
+        parents = []
+
+        while len(parents) < self.population_size:
+            tournament = random.sample(current_population, min(tournament_size, len(current_population)))
+
+            winner = min(tournament, key=lambda chromosome: chromosome.fitness)
+
+            parents.append(winner)
+
         for chromosome in current_population:
             chromosome.probability = 1 - (1 - self.base_probability) ** tournament_size
         
@@ -93,7 +116,10 @@ class GA:
         
         crossover_point = random.randint(1, self.chromosome_length - 2)
 
-        child_genes = [parent1.genes[self.network.start_node_idx]] + parent1.genes[self.network.start_node_idx:crossover_point] + parent2.genes[crossover_point:self.network.end_node_idx] + [parent1.genes[self.network.end_node_idx]] 
+        child_genes = (
+                parent1.genes[:crossover_point] +  # От начала до точки кроссовера
+                parent2.genes[crossover_point:]     # От точки кроссовера до конца
+            )
 
         return Chromosome(child_genes)
 
@@ -214,42 +240,11 @@ class GA:
         if self.current_generation_number >= self.generations:
             return
 
-        # Evaluate current population
-        #self.evaluate_population()
-        #self.first_population = self.population.copy()
-
-        # Check population diversity
-        #diversity = self.calculate_diversity()
-
-        # If population too similar, inject random immigrants
-#        if diversity < 0.15:  # Less than 15% diversity
- #           self.inject_random_immigrants(immigrants_count=max(1, self.population_size // 4))
-
-        # Get current best chromosome
-  #      current_best = min(self.population, key=lambda chromosome: chromosome.fitness)
-
-        # Check if we found a better solution
-  #      if current_best.fitness < self.best_fitness_ever:
- #           self.best_fitness_ever = current_best.fitness
-  #          self.best_chromosome = Chromosome(current_best.genes[:])
-  #          self.best_chromosome.fitness = current_best.fitness
-  #          self.generations_without_improvement = 0  # Reset counter
-  #      else:
-  #          self.generations_without_improvement += 1
-##
-        # Adaptive mutation: only if enabled via toggle
-        # if self.adaptive_mutation_enabled:
-        #     if self.generations_without_improvement > 1000:
-        #         multiplier = self.generations_without_improvement / 1000
-        #         self.mutation_rate = min(0.5, self.base_mutation_rate * multiplier)
-        #     else:
-        #         self.mutation_rate = self.base_mutation_rate
-        # else:
-        #     # Adaptive mutation disabled - use base rate only
-        #     self.mutation_rate = self.base_mutation_rate
 
         new_population = []
-        selected_parrents = self.proportional_selection(self.population, self.best_chromosome.fitness)
+        selected_parrents = self.tournament_selection(self.population, self.best_chromosome.fitness)
+        best_chromosome = min(self.population, key=lambda chrom: chrom.fitness)
+        new_population.append(best_chromosome)
 
         while len(new_population) < self.population_size:
             if len(selected_parrents) < 2:
@@ -261,37 +256,12 @@ class GA:
             new_population.append(child)
 
         
-        self.population = new_population
+        self.population = new_population[:self.population_size]
         self.evaluate_population()
         self.best_chromosome = min(self.population, key=lambda chromosome: chromosome.fitness)
 
 
-        # new_population = []
-
-        # # Elitism: preserve the best chromosome in the next generation (always first)
-        # elite_copy = Chromosome(self.best_chromosome.genes[:])
-        # elite_copy.fitness = self.best_chromosome.fitness
-        # new_population.append(elite_copy)
-
-        # # Create population_size - 1 children (elite takes 1 spot)
-        # while len(new_population) < self.population_size:
-        #     parent1, parent2 = random.sample(selected, 2)
-        #     child = self.crossover(parent1, parent2)
-
-        #     # Apply mutation to EVERY chromosome with probability mutation_rate
-        #     if random.random() < self.mutation_rate:
-        #         child = self.mutate(child)
-        #         self.mutation_count += 1
-
-        #     new_population.append(child)
-
-        # Don't use reduction here - we already have exactly population_size
-        # and elite is guaranteed to be first
-        #self.population = new_population
-        #self.evaluate_population()
-        #self.best_chromosome = min(self.population, key=lambda chromosome: chromosome.fitness)
-
-        # increment generation counter
+       
         self.current_generation_number += 1
         print(self.current_generation_number - 1, self.best_chromosome)
 
