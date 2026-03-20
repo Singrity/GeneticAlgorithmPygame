@@ -19,6 +19,18 @@ class MutationType(Enum):
     BIT_FLIP = auto()
     GAUSSIAN = auto()
 
+class ButtonTextToAlgType(Enum):
+    prop = SelectionType.PROPORTIONAL
+    tour = SelectionType.TOURNAMENT
+    rang = SelectionType.RANG
+    one = CrossoverType.ONE_POINT
+    two = CrossoverType.TWO_POINT
+    uni = CrossoverType.UNIFORM
+    bit = MutationType.BIT_FLIP
+    gaus = MutationType.GAUSSIAN
+
+
+
 
 
 class GA:
@@ -362,6 +374,10 @@ class GA:
             self.population[i] = self.create_random_chromosome()
         
         print(f"  → Injected {immigrants_count} immigrants (diversity={self.calculate_diversity():.2f})")
+
+
+    def __repr__(self):
+        return f"algtype: {self.selection_type, self.crossover_type, self.mutation_type}"
             
             
 

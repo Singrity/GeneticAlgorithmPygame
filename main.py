@@ -1,8 +1,10 @@
 import pygame
-from ga import GA
+from ga import GA, ButtonTextToAlgType
 from network import Network
 from control_panel import ControlPanel
-from button import Button
+from button import Button, ButtonType
+from input import Input
+
 
 class App:
 	def __init__(self, width=1500, height=900):
@@ -25,7 +27,7 @@ class App:
 		self.control_panel = ControlPanel(
 			panel_pos=pygame.Vector2(width - width // 2.6, 0),
 			panel_size=pygame.Vector2(width // 2.6, height),
-			graphic_pos=pygame.Vector2(20, 500),
+			graphic_pos=pygame.Vector2(20, 650),
 			graphic_size=pygame.Vector2(width // 3 - 40, 200),
 			input_size=pygame.Vector2(150, 30),
 			button_size=pygame.Vector2(150, 35),
@@ -78,88 +80,93 @@ class App:
 					pygame.quit()
 					return
 				# Handle keyboard input for active input fields
-				if self.control_panel.handle_key(event):
-					continue
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				mouse_pos = pygame.mouse.get_pos() if pygame.display.get_surface() else (0, 0)
-				clicked_button = self.control_panel.handle_click(mouse_pos)
-				if clicked_button == "Start":
+			clicked_element = self.control_panel.handle_events(event)
+			if type(clicked_element) == Button:
+				if clicked_element.type == ButtonType.CROSOVER_TYPE or clicked_element.type == ButtonType.SELECTION_TYPE or clicked_element.type == ButtonType.MUTATION_TYPE:
+					for button in self.control_panel.buttons:
+						if button.type == clicked_element.type:
+							button.is_active = False
+					clicked_element.is_active = not clicked_element.is_active
 
-					#self.control_panel.graphic.best_fitness = []
-					self.genetic_algorithm.is_running = True
 
-				elif clicked_button == "Apply" and not self.genetic_algorithm.is_running:
 
-					input_values = self.control_panel.get_input_values()
-					if self.network.size != input_values["network_size"]:
-						self.network.update_size(int(input_values["network_size"]))
+				elif clicked_element.type == ButtonType.CONTROL:
+					if clicked_element.text == "Start":
+						self.genetic_algorithm.is_running = True
+					elif clicked_element.text == "Apply" and not self.genetic_algorithm.is_running:
+						input_values = self.control_panel.get_input_values()
+
+						for button in self.control_panel.buttons:
+							if button.type == ButtonType.SELECTION_TYPE and button.is_active:
+								selection_button_type = button.text.value 								
+							if button.type == ButtonType.CROSOVER_TYPE and button.is_active:
+								crosover_button_type = button.text.value
+							if button.type == ButtonType.MUTATION_TYPE and button.is_active:
+								mutation_button_type = button.text.value
 						
-					self.genetic_algorithm = GA(
-						network=self.network,
-						population_size=self.population_size,
-						generations=self.generations,
-						mutation_rate=float(input_values["mutation_rate"]),
+
+						if self.network.size != input_values["network_size"]:
+							self.network.update_size(int(input_values["network_size"]))
+
+						self.genetic_algorithm = GA(
+							network=self.network,
+							population_size=self.population_size,
+							generations=self.generations,
+							mutation_rate=self.mutation_rate,
+							selection_type=selection_button_type,
+							crossover_type=crosover_button_type,
+							mutation_type=mutation_button_type
 						)
-					# Update network size if changed
-					
-					if self.genetic_algorithm.population_size != int(input_values["population_size"]):
-						self.genetic_algorithm.population_size = int(input_values["population_size"])
-					
-					if self.genetic_algorithm.generations != int(input_values["generations"]):
-						self.genetic_algorithm.generations = int(input_values["generations"])
+						print(self.genetic_algorithm)
 
-					if self.genetic_algorithm.base_mutation_rate or self.genetic_algorithm.mutation_rate != float(input_values["mutation_rate"]):
-						self.genetic_algorithm.base_mutation_rate = float(input_values["mutation_rate"])
-						self.genetic_algorithm.mutation_rate = float(input_values["mutation_rate"])
+						if self.genetic_algorithm.population_size != int(input_values["population_size"]):
+							self.genetic_algorithm.population_size = int(input_values["population_size"])
 					
+						if self.genetic_algorithm.generations != int(input_values["generations"]):
+							self.genetic_algorithm.generations = int(input_values["generations"])
+
+						if self.genetic_algorithm.base_mutation_rate or self.genetic_algorithm.mutation_rate != float(input_values["mutation_rate"]):
+							self.genetic_algorithm.base_mutation_rate = float(input_values["mutation_rate"])
+							self.genetic_algorithm.mutation_rate = float(input_values["mutation_rate"])
 					
+					if clicked_element.text == "Stop":
+						self.genetic_algorithm.is_running = False
+
+					if clicked_element.text == "Reset":
+						self.genetic_algorithm.is_running = False
+						self.control_panel.graphic.clear()
+						self.network.reset()
+						input_values = self.control_panel.get_input_values()
+						mutation_rate = float(input_values["mutation_rate"])
+						self.genetic_algorithm = GA(
+							network=self.network,
+							population_size=self.population_size,
+							generations=self.generations,
+							mutation_rate=mutation_rate,
+							)
+						if self.genetic_algorithm.population_size != int(input_values["population_size"]):
+							self.genetic_algorithm.population_size = int(input_values["population_size"])
+					
+						if self.genetic_algorithm.generations != int(input_values["generations"]):
+							self.genetic_algorithm.generations = int(input_values["generations"])
+
+						if self.genetic_algorithm.base_mutation_rate or self.genetic_algorithm.mutation_rate != float(input_values["mutation_rate"]):
+							self.genetic_algorithm.base_mutation_rate = float(input_values["mutation_rate"])
+							self.genetic_algorithm.mutation_rate = float(input_values["mutation_rate"])
+
+					if clicked_element.text == "Exit":
+						self.running = False
+						pygame.quit()
+						return
+
+			if type(clicked_element) == Input:
+				for input in self.control_panel.inputs:
+					input.is_active = False
+				clicked_element.is_active = not clicked_element.is_active
 
 
-				elif clicked_button == "Stop":
-					# Clear graph and reset everything
-					self.genetic_algorithm.is_running = False
-					#self.network.reset()
-					# Get current values from inputs
-					#input_values = self.control_panel.get_input_values()
-					#mutation_rate = float(input_values["mutation_rate"])
-					#adaptive_mutation = input_values["adaptive_mutation"]
-					#self.genetic_algorithm = GA(
-						#network=self.network,
-						#population_size=self.population_size,
-						#generations=self.generations,
-						#mutation_rate=mutation_rate,
-						#)
-					#self.genetic_algorithm.adaptive_mutation_enabled = adaptive_mutation
-				elif clicked_button == "Reset":
-					self.control_panel.graphic.clear()
-					self.genetic_algorithm.is_running = False
-					self.network.reset()
-					# Get current values from inputs
-					input_values = self.control_panel.get_input_values()
-					mutation_rate = float(input_values["mutation_rate"])
-					self.genetic_algorithm = GA(
-						network=self.network,
-						population_size=self.population_size,
-						generations=self.generations,
-						mutation_rate=mutation_rate,
-						)
-					if self.genetic_algorithm.population_size != int(input_values["population_size"]):
-						self.genetic_algorithm.population_size = int(input_values["population_size"])
-					
-					if self.genetic_algorithm.generations != int(input_values["generations"]):
-						self.genetic_algorithm.generations = int(input_values["generations"])
 
-					if self.genetic_algorithm.base_mutation_rate or self.genetic_algorithm.mutation_rate != float(input_values["mutation_rate"]):
-						self.genetic_algorithm.base_mutation_rate = float(input_values["mutation_rate"])
-						self.genetic_algorithm.mutation_rate = float(input_values["mutation_rate"])
-					
-				elif clicked_button == "Clear":
-					self.control_panel.graphic.clear()
-				elif clicked_button == "Exit":
-					self.running = False
-					pygame.quit()
-					return
-
+				
 	def run(self):
 		while self.running:
 			self.handle_events()

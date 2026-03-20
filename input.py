@@ -46,28 +46,24 @@ class Input:
         # Update visual state based on hover (optional hover effect could be added)
         pass
 
-    def handle_click(self, pos):
+    def is_clicked(self, pos) -> bool:
         if self.rect.collidepoint(pos):
-            self.is_active = True
             self.input_text = str(self.value)
             return True
         else:
-            self.is_active = False
             self.input_text = str(self.value)
             return False
 
-    def handle_key(self, event):
+    def handle_events(self, event: pygame.event.Event):
         if not self.is_active:
-            return False
+            return 
 
         if event.key == pygame.K_RETURN:
             self._commit_value()
             self.is_active = False
-            return True
         elif event.key == pygame.K_ESCAPE:
             self.input_text = str(self.original_value)
             self.is_active = False
-            return True
         elif event.key == pygame.K_BACKSPACE:
             self.input_text = self.input_text[:-1]
         elif event.key == pygame.K_MINUS or (event.key >= pygame.K_0 and event.key <= pygame.K_9):
@@ -80,7 +76,6 @@ class Input:
             if '.' not in self.input_text:
                 self.input_text += '.'
 
-        return True
 
     def _commit_value(self):
         try:
@@ -113,3 +108,6 @@ class Input:
     def deactivate(self):
         self.is_active = False
         self.input_text = str(self.value)
+
+    def __repr__(self):
+        return f"Input(label={self.label}, is_active={self.is_active})"

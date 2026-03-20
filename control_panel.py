@@ -1,7 +1,7 @@
-from button import Button
+from button import Button, ButtonType
 from input import Input
 from graph import Graphic
-import math
+from ga import ButtonTextToAlgType
 import pygame
 
 
@@ -19,92 +19,138 @@ class ControlPanel:
         initial_mutation_rate,
         initial_network_size
     ):
+
+        
+        
+        self.button_size = button_size
         self.panel_pos = panel_pos
         self.panel_size = panel_size
+        self.input_size = input_size
+        self.initial_population_size = initial_population_size
+        self.initial_generations = initial_generations
+        self.initial_mutation_rate = initial_mutation_rate
+        self.initial_network_size = initial_network_size
+
+        self.title_font = pygame.font.SysFont('Arial', 24, bold=True)
+        self.title = self.title_font.render("Settings", True, (50, 50, 50))
+        self.title_rect = self.title.get_rect(centerx=int(self.panel_size.x) // 2, top=30)
         
         # Create the control surface
         self.control_surface = pygame.Surface((int(panel_size.x), int(panel_size.y)))
-        self.control_surface.fill((220, 220, 220))  # light gray background
         
         # Initialize lists for buttons and inputs
         self.buttons = []
         self.inputs = []
         
         # Padding for layout
-        padding_x = 20
-        padding_y = 20
-        spacing = 30
-        
-        # Current y position for layout
-        current_y = padding_y
-        
-        # Add label at the top
-        font = pygame.font.SysFont('Arial', 24, bold=True)
-        title = font.render("Settings", True, (50, 50, 50))
-        title_rect = title.get_rect(centerx=int(panel_size.x) // 2, top=current_y)
-        self.control_surface.blit(title, title_rect)
-        current_y += title_rect.height + spacing
-        
-        # Add input fields
-        self._add_input("population_size", initial_population_size, input_size, padding_x, current_y, is_integer=True, min_value=5, max_value=10000)
-        current_y += input_size.y + spacing
-        
-        self._add_input("generations", initial_generations, input_size, padding_x, current_y, is_integer=True, min_value=10, max_value=math.inf)
-        current_y += input_size.y + spacing
-        
-        self._add_input("mutation_rate", initial_mutation_rate, input_size, padding_x, current_y, is_integer=False, min_value=0.01, max_value=1.0)
-        current_y += input_size.y + spacing
-        
-        self._add_input("network_size", initial_network_size, input_size, padding_x, current_y, is_integer=True, min_value=5, max_value=100)
-        current_y += input_size.y + spacing
-        
-        # Add adaptive mutation toggle (checkbox area)
-        self.adaptive_mutation_enabled = False
-        checkbox_size = 20
-        checkbox_y = current_y + 5
-        self.adaptive_checkbox_rect = pygame.Rect(padding_x, checkbox_y, checkbox_size, checkbox_size)
-        adaptive_font = pygame.font.SysFont('Arial', 18)
-        adaptive_text = adaptive_font.render("Adaptive Mutation", True, (50, 50, 50))
-        adaptive_text_rect = adaptive_text.get_rect(midleft=(padding_x + checkbox_size + 10, checkbox_y + checkbox_size // 2))
-        self.adaptive_text_rect = adaptive_text_rect
-        # Create combined click area for checkbox + text
-        self.adaptive_click_area = self.adaptive_checkbox_rect.union(adaptive_text_rect)
-        current_y += checkbox_size + spacing
-        
-        # Add buttons
-        button_y = current_y
-        self._add_button("Start", button_size, padding_x, button_y)
-        self._add_button("Stop", button_size, padding_x + button_size.x + spacing, button_y)
-        self._add_button("Reset", button_size, padding_x + (button_size.x + spacing) * 2, button_y)
-        button_y += button_size.y + spacing
-        self._add_button("Apply", button_size, padding_x, button_y)
-        self._add_button("Exit", button_size, padding_x + button_size.x + spacing, button_y)
+        self.padding_x = 20
+        self.padding_y = 20
+        self.spacing = 30
 
+        self.control_buttons_pos = pygame.Vector2(self.panel_pos.x + self.padding_x, self.panel_pos.y + self.padding_y)
+        self.alg_type_buttons_pos = pygame.Vector2(self.panel_pos.x + self.padding_x, self.panel_pos.y + self.padding_y + 500)
         
-        # Initialize graphic (fitness graph)
+        
+        # # Initialize graphic (fitness graph)
         self.graphic = Graphic(graphic_pos.x, graphic_pos.y, int(graphic_size.x), int(graphic_size.y))
 
-        self._add_button("Clear", button_size, padding_x, self.graphic.rect.bottom)
 
-    def _add_input(self, label, value, size, x, y, is_integer=False, min_value=None, max_value=None):
-        input_field = Input(
-            int(size.x), int(size.y),
-            label=label,
-            value=value,
-            x=x, y=y,
-            is_integer=is_integer,
-            min_value=min_value,
-            max_value=max_value
-        )
-        self.inputs.append(input_field)
+        self.type_button_size = pygame.Vector2(130, 25)
+     
 
-    def _add_button(self, text, size, x, y):
-        button = Button(int(size.x), int(size.y), text, x, y)
-        self.buttons.append(button)
+        self.setup_control_panel()
+
+
+    def setup_control_panel(self):
+        control_button_names = [
+                [
+                    ("Start", ButtonType.CONTROL),
+                    ("Stop", ButtonType.CONTROL),
+                    ("Reset", ButtonType.CONTROL),
+                ],
+                [
+                    ("Apply", ButtonType.CONTROL),
+                    ("Exit", ButtonType.CONTROL)
+                ]
+            ]
+        type_button_names = [
+                [
+                    (ButtonTextToAlgType.prop, True, ButtonType.SELECTION_TYPE),
+                    (ButtonTextToAlgType.tour, False, ButtonType.SELECTION_TYPE),
+                    (ButtonTextToAlgType.rang, False, ButtonType.SELECTION_TYPE)
+                ],
+                [
+                    (ButtonTextToAlgType.one, True, ButtonType.CROSOVER_TYPE),
+                    (ButtonTextToAlgType.two, False, ButtonType.CROSOVER_TYPE),
+                    (ButtonTextToAlgType.uni, False, ButtonType.CROSOVER_TYPE)
+                ],
+                [
+                    (ButtonTextToAlgType.bit, True, ButtonType.MUTATION_TYPE),
+                    (ButtonTextToAlgType.gaus, False, ButtonType.MUTATION_TYPE)
+                ]
+            ]
+        inputs = [[("population_size", self.initial_population_size, 5, 1000, True), ("generations", self.initial_generations, 1, 10000000, True), ("mutation_rate", self.initial_mutation_rate, 0, 1, False), ("network_size", self.initial_network_size, 1, 100, True)]]
+
+        
+
+        current_control_button_y = self.panel_pos.y + self.padding_y + 300
+        for row in control_button_names:
+            for i, (name, b_type) in enumerate(row):
+                button = Button(
+                    text=name,
+                    x=self.padding_x + i * (self.button_size.x + self.spacing),
+                    y=current_control_button_y,
+                    type=b_type
+                )
+                self.buttons.append(button)
+            current_control_button_y += self.button_size.y + self.spacing
+
+        # Add type buttons
+        current_type_button_y = self.panel_pos.y + self.padding_y + 480
+        for row in type_button_names:
+            for i, (name, is_active, b_type) in enumerate(row):
+                button = Button(
+                    text=name,
+                    x=int(self.padding_x + i * (self.type_button_size.x + self.spacing)),
+                    y=current_type_button_y,
+                    is_active=is_active,
+                    type=b_type
+                )
+                self.buttons.append(button)
+            current_type_button_y += self.type_button_size.y + self.spacing
+
+        current_input_y = self.panel_pos.y + self.padding_y + 70
+        for row in inputs:
+            for i, (name, default_value, min, max, is_integer) in enumerate(row):
+                input = Input(
+                    width=self.input_size.x,
+                    height=self.input_size.y,
+                    label=name,
+                    value=default_value,
+                    x=self.padding_x,
+                    y=current_input_y,
+                    min_value=min,
+                    max_value=max,
+                    is_integer=is_integer
+                )
+                self.inputs.append(input)
+                current_input_y += self.input_size.y + self.spacing
+
+        for bid, button in enumerate(self.buttons):
+            button.bid += bid
+
+
 
     def draw(self, screen, mouse_pos=None):
         # Draw the control panel surface at the right side of the screen
         screen.blit(self.control_surface, (self.panel_pos.x, self.panel_pos.y))
+
+        self.control_surface.fill((220, 220, 220))  # light gray background
+
+        self.title_font = pygame.font.SysFont('Arial', 24, bold=True)
+        self.title = self.title_font.render("Settings", True, (50, 50, 50))
+        title_rect = self.title.get_rect(centerx=int(self.panel_size.x) // 2, top=30)
+        self.control_surface.blit(self.title, title_rect)
 
         # Draw all input fields
         for input_field in self.inputs:
@@ -113,19 +159,15 @@ class ControlPanel:
         # Draw all buttons
         for button in self.buttons:
             button.draw(self.control_surface)
+        
+        # separator line
+        pygame.draw.line(self.control_surface, (255, 255, 255), (0, 480), (self.panel_size.x, 480), 1)
+        pygame.draw.line(self.control_surface, (255, 255, 255), (0, 645), (self.panel_size.x, 645), 1)
 
-        # Draw adaptive mutation checkbox
-        is_hovered = mouse_pos and self.is_mouse_over_adaptive_checkbox(mouse_pos)
-        checkbox_color = (0, 120, 215) if self.adaptive_mutation_enabled else (255, 255, 255)
-        border_color = (0, 100, 200) if is_hovered else (100, 100, 100)
-        pygame.draw.rect(self.control_surface, border_color, self.adaptive_checkbox_rect, 2)
-        pygame.draw.rect(self.control_surface, checkbox_color, self.adaptive_checkbox_rect.inflate(-4, -4))
-        adaptive_font = pygame.font.SysFont('Arial', 18)
-        adaptive_text = adaptive_font.render("Adaptive Mutation", True, (50, 50, 50))
-        self.control_surface.blit(adaptive_text, self.adaptive_text_rect)
-
+        
         # Draw the fitness graph on the control surface
         self.graphic.draw(self.control_surface)
+
 
     def update(self, mouse_pos):
         # Check if display is initialized
@@ -143,46 +185,40 @@ class ControlPanel:
         for input_field in self.inputs:
             input_field.update(panel_mouse_pos)
 
-    def is_mouse_over_adaptive_checkbox(self, mouse_pos):
-        # Check if mouse is over the adaptive mutation checkbox area
-        panel_mouse_pos = (mouse_pos[0] - self.panel_pos.x, mouse_pos[1] - self.panel_pos.y)
-        return self.adaptive_click_area.collidepoint(panel_mouse_pos)
 
-    def handle_click(self, pos):
+    def get_clicked_element(self, pos) -> Button | Input | None:
         # Convert to panel coordinates
-        panel_pos = (pos[0] - self.panel_pos.x, pos[1] - self.panel_pos.y)
-
-        # Check adaptive mutation checkbox FIRST (click area includes text)
-        if self.adaptive_click_area.collidepoint(panel_pos):
-            self.adaptive_mutation_enabled = not self.adaptive_mutation_enabled
-            # Deactivate any active inputs
-            for input_field in self.inputs:
-                input_field.deactivate()
-            return None
-
-        # Check inputs
-        for input_field in self.inputs:
-            if input_field.handle_click(panel_pos):
-                return None  # Input was activated, don't process buttons
+        converted_mouse_pos_to_control_suraface = (pos[0] - self.panel_pos.x, pos[1] - self.panel_pos.y)
 
         # Check buttons
         for button in self.buttons:
-            if button.is_hovered(panel_pos):
-                return button.text
+            if button.is_hovered(converted_mouse_pos_to_control_suraface):
+                for input_field in self.inputs:
+                    input_field.deactivate()
+                return button
+        
+        for input in self.inputs:
+            if input.is_clicked(converted_mouse_pos_to_control_suraface):
+                return input
 
-        # Clicked outside everything - deactivate inputs
-        for input_field in self.inputs:
-            input_field.deactivate()
+            
+    def handle_events(self, event: pygame.event.Event):
+        if event.type == pygame.KEYDOWN:
+            for input in self.inputs:
+                input.handle_events(event)
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos() if pygame.display.get_surface() else (0, 0)
+            clicked_element = self.get_clicked_element(mouse_pos)
+            return clicked_element
 
-        return None
 
-    def handle_key(self, event):
-        # Pass keyboard events to active input fields
-        for input_field in self.inputs:
-            if input_field.is_active:
-                if input_field.handle_key(event):
-                    return True
-        return False
+    # def handle_key(self, event):
+    #     # Pass keyboard events to active input fields
+    #     for input_field in self.inputs:
+    #         if input_field.is_active:
+    #             if input_field.handle_key(event):
+    #                 return True
+    #     return False
 
     def get_input_values(self):
         # Get values from all input fields
@@ -190,6 +226,6 @@ class ControlPanel:
         for input_field in self.inputs:
             label_key = input_field.label.lower().replace(":", "").replace(" ", "_")
             values[label_key] = input_field.get_value()
-        values["adaptive_mutation"] = self.adaptive_mutation_enabled
+        #values["adaptive_mutation"] = self.adaptive_mutation_enabled
         return values
     
