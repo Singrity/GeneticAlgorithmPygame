@@ -98,6 +98,20 @@ class Network:
         self.start_node_idx = 0
         self.end_node_idx = max(1, new_size - 1)  # Last node index
         self.reset()
+
+    def get_min_edge_weight(self):
+
+        min_weight = math.inf
+        for edge in self.edges:
+            if edge.weight < min_weight:
+                min_weight = edge.weight
+
+        return min_weight
+        # for row in self.graph:
+        #     for weight in row:
+        #        if weight < min_weight:
+        #            min_weight = weight
+        # print(min_weight)
         
 
 

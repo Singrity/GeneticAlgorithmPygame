@@ -1,5 +1,5 @@
 import pygame
-from ga import GA, ButtonTextToAlgType
+from ga import GA, BUTTON_TEXT_TO_ALG_TYPE
 from network import Network
 from control_panel import ControlPanel
 from button import Button, ButtonType
@@ -37,7 +37,6 @@ class App:
 			initial_network_size=self.network_size
 		)
 
-	
 
 	def draw(self):
 		self.screen.fill((230, 230, 230)) # clear screen with white background
@@ -50,8 +49,8 @@ class App:
 		self.genetic_algorithm.draw_mutation_rate(self.screen) # draw the mutation rate
 		self.genetic_algorithm.draw_stagnation_counter(self.screen) # draw stagnation counter
 		self.network.draw(self.screen) # draw the network
-		if self.genetic_algorithm.is_running:
-			self.genetic_algorithm.draw_best_path(self.screen) # draw the best path found by the genetic algorithm
+		#if self.genetic_algorithm.is_running:
+		self.genetic_algorithm.draw_best_path(self.screen) # draw the best path found by the genetic algorithm
 
 
 	def update(self):
@@ -82,28 +81,29 @@ class App:
 				# Handle keyboard input for active input fields
 			clicked_element = self.control_panel.handle_events(event)
 			if type(clicked_element) == Button:
-				if clicked_element.type == ButtonType.CROSOVER_TYPE or clicked_element.type == ButtonType.SELECTION_TYPE or clicked_element.type == ButtonType.MUTATION_TYPE:
-					for button in self.control_panel.buttons:
-						if button.type == clicked_element.type:
-							button.is_active = False
+				button = clicked_element
+				if button.btype == ButtonType.CROSOVER_TYPE or button.btype == ButtonType.SELECTION_TYPE or button.btype == ButtonType.MUTATION_TYPE:
+					for bbutton in self.control_panel.buttons:
+						if bbutton.btype == button.btype:
+							bbutton.is_active = False
 					clicked_element.is_active = not clicked_element.is_active
 
 
 
-				elif clicked_element.type == ButtonType.CONTROL:
-					if clicked_element.text == "Start":
+				elif button.btype == ButtonType.CONTROL:
+					if button.text == "Start":
 						self.genetic_algorithm.is_running = True
-					elif clicked_element.text == "Apply" and not self.genetic_algorithm.is_running:
+					elif button.text == "Apply" and not self.genetic_algorithm.is_running:
 						input_values = self.control_panel.get_input_values()
 
 						for button in self.control_panel.buttons:
-							if button.type == ButtonType.SELECTION_TYPE and button.is_active:
-								selection_button_type = button.text.value 								
-							if button.type == ButtonType.CROSOVER_TYPE and button.is_active:
-								crosover_button_type = button.text.value
-							if button.type == ButtonType.MUTATION_TYPE and button.is_active:
-								mutation_button_type = button.text.value
-						
+							if button.btype == ButtonType.SELECTION_TYPE and button.is_active:
+								selection_button_type = BUTTON_TEXT_TO_ALG_TYPE[button.text] 								
+							if button.btype == ButtonType.CROSOVER_TYPE and button.is_active:
+								crosover_button_type = BUTTON_TEXT_TO_ALG_TYPE[button.text] 	
+							if button.btype == ButtonType.MUTATION_TYPE and button.is_active:
+								mutation_button_type = BUTTON_TEXT_TO_ALG_TYPE[button.text] 	
+				
 
 						if self.network.size != input_values["network_size"]:
 							self.network.update_size(int(input_values["network_size"]))

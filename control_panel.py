@@ -1,7 +1,7 @@
 from button import Button, ButtonType
 from input import Input
 from graph import Graphic
-from ga import ButtonTextToAlgType
+from ga import SelectionType, CrossoverType, MutationType, ALG_TO_BUTTON_TEXT
 import pygame
 
 
@@ -75,18 +75,18 @@ class ControlPanel:
             ]
         type_button_names = [
                 [
-                    (ButtonTextToAlgType.prop, True, ButtonType.SELECTION_TYPE),
-                    (ButtonTextToAlgType.tour, False, ButtonType.SELECTION_TYPE),
-                    (ButtonTextToAlgType.rang, False, ButtonType.SELECTION_TYPE)
+                    (ALG_TO_BUTTON_TEXT[SelectionType.PROPORTIONAL], True, ButtonType.SELECTION_TYPE),
+                    (ALG_TO_BUTTON_TEXT[SelectionType.TOURNAMENT], False, ButtonType.SELECTION_TYPE),
+                    (ALG_TO_BUTTON_TEXT[SelectionType.RANG], False, ButtonType.SELECTION_TYPE)
                 ],
                 [
-                    (ButtonTextToAlgType.one, True, ButtonType.CROSOVER_TYPE),
-                    (ButtonTextToAlgType.two, False, ButtonType.CROSOVER_TYPE),
-                    (ButtonTextToAlgType.uni, False, ButtonType.CROSOVER_TYPE)
+                    (ALG_TO_BUTTON_TEXT[CrossoverType.ONE_POINT], True, ButtonType.CROSOVER_TYPE),
+                    (ALG_TO_BUTTON_TEXT[CrossoverType.TWO_POINT], False, ButtonType.CROSOVER_TYPE),
+                    (ALG_TO_BUTTON_TEXT[CrossoverType.UNIFORM], False, ButtonType.CROSOVER_TYPE)
                 ],
                 [
-                    (ButtonTextToAlgType.bit, True, ButtonType.MUTATION_TYPE),
-                    (ButtonTextToAlgType.gaus, False, ButtonType.MUTATION_TYPE)
+                    (ALG_TO_BUTTON_TEXT[MutationType.BIT_FLIP], True, ButtonType.MUTATION_TYPE),
+                    (ALG_TO_BUTTON_TEXT[MutationType.GAUSSIAN], False, ButtonType.MUTATION_TYPE)
                 ]
             ]
         inputs = [[("population_size", self.initial_population_size, 5, 1000, True), ("generations", self.initial_generations, 1, 10000000, True), ("mutation_rate", self.initial_mutation_rate, 0, 1, False), ("network_size", self.initial_network_size, 1, 100, True)]]
@@ -100,7 +100,7 @@ class ControlPanel:
                     text=name,
                     x=self.padding_x + i * (self.button_size.x + self.spacing),
                     y=current_control_button_y,
-                    type=b_type
+                    btype=b_type
                 )
                 self.buttons.append(button)
             current_control_button_y += self.button_size.y + self.spacing
@@ -114,7 +114,7 @@ class ControlPanel:
                     x=int(self.padding_x + i * (self.type_button_size.x + self.spacing)),
                     y=current_type_button_y,
                     is_active=is_active,
-                    type=b_type
+                    btype=b_type
                 )
                 self.buttons.append(button)
             current_type_button_y += self.type_button_size.y + self.spacing

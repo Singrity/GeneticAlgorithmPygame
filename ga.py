@@ -19,18 +19,27 @@ class MutationType(Enum):
     BIT_FLIP = auto()
     GAUSSIAN = auto()
 
-class ButtonTextToAlgType(Enum):
-    prop = SelectionType.PROPORTIONAL
-    tour = SelectionType.TOURNAMENT
-    rang = SelectionType.RANG
-    one = CrossoverType.ONE_POINT
-    two = CrossoverType.TWO_POINT
-    uni = CrossoverType.UNIFORM
-    bit = MutationType.BIT_FLIP
-    gaus = MutationType.GAUSSIAN
+ALG_TO_BUTTON_TEXT = {
+    SelectionType.PROPORTIONAL: "prop",
+    SelectionType.TOURNAMENT: "tour",
+    SelectionType.RANG: "rang",
+    CrossoverType.ONE_POINT: "one",
+    CrossoverType.TWO_POINT: "two",
+    CrossoverType.UNIFORM: "uni",
+    MutationType.BIT_FLIP: "bit",
+    MutationType.GAUSSIAN: "gaus"
+}
 
-
-
+BUTTON_TEXT_TO_ALG_TYPE = {
+    "prop": SelectionType.PROPORTIONAL, 
+    "tour": SelectionType.TOURNAMENT,
+    "rang": SelectionType.RANG,
+    "one": CrossoverType.ONE_POINT, 
+    "two": CrossoverType.TWO_POINT,
+    "uni": CrossoverType.UNIFORM,
+    "bit": MutationType.BIT_FLIP,
+    "gaus": MutationType.GAUSSIAN 
+}
 
 
 class GA:
@@ -69,6 +78,8 @@ class GA:
         self.base_probability = 0.5  # Base probability for selection methods
 
         self.is_running = False
+
+        self.min_edge_weight = self.network.get_min_edge_weight()
 
     def create_random_chromosome(self):
         actual_length = min(self.chromosome_length, self.network.size)
@@ -291,7 +302,7 @@ class GA:
 
         self.is_running = True
         # Advance a single generation each call so the main loop can control updates
-        if self.current_generation_number >= self.generations:
+        if self.current_generation_number >= self.generations or self.best_chromosome.fitness <= self.min_edge_weight:
             self.is_running = False
             return
 
