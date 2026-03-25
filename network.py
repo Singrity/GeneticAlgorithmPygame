@@ -5,7 +5,12 @@ import pygame
 from node import Node
 from edge import Edge   
 
-
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
 
 
 class Network:

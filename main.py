@@ -1,10 +1,16 @@
 import pygame
-from ga import GA, BUTTON_TEXT_TO_ALG_TYPE
+from ga import GA, BUTTON_TEXT_TO_ALG_TYPE, RunType
 from network import Network
 from control_panel import ControlPanel
 from button import Button, ButtonType
 from input import Input
 
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/course/view.php?id=14927
+2026
+"""
 
 class App:
 	def __init__(self, width=1500, height=900):
@@ -55,9 +61,15 @@ class App:
 
 	def update(self):
 		# Only update graph and run algorithm if running and not at limit
-		if self.genetic_algorithm.is_running and self.genetic_algorithm.current_generation_number < self.genetic_algorithm.generations:
-			self.control_panel.graphic.best_fitness.append(self.genetic_algorithm.best_chromosome.fitness)
-			self.genetic_algorithm.run_algorithm()
+		match self.genetic_algorithm.run_type:
+			case RunType.CICLE:
+				if self.genetic_algorithm.is_running and self.genetic_algorithm.current_generation_number < self.genetic_algorithm.generations:
+					self.control_panel.graphic.best_fitness.append(self.genetic_algorithm.best_chromosome.fitness)
+					self.genetic_algorithm.run_algorithm()
+			case RunType.STEP:
+				if self.genetic_algorithm.is_running and self.genetic_algorithm.current_generation_number < self.genetic_algorithm.generations and self.genetic_algorithm.next_step:
+					self.control_panel.graphic.best_fitness.append(self.genetic_algorithm.best_chromosome.fitness)
+					self.genetic_algorithm.run_algorithm()
 
 
 		# Update control panel buttons based on mouse position
@@ -91,6 +103,9 @@ class App:
 
 
 				elif button.btype == ButtonType.CONTROL:
+					if clicked_element.text == "Next":
+						self.genetic_algorithm.next_step = True
+						self.genetic_algorithm.is_running = True
 					if button.text == "Start":
 						self.genetic_algorithm.is_running = True
 					elif button.text == "Apply" and not self.genetic_algorithm.is_running:
@@ -103,6 +118,8 @@ class App:
 								crosover_button_type = BUTTON_TEXT_TO_ALG_TYPE[button.text] 	
 							if button.btype == ButtonType.MUTATION_TYPE and button.is_active:
 								mutation_button_type = BUTTON_TEXT_TO_ALG_TYPE[button.text] 	
+							if button.btype == ButtonType.RUN_TYPE and button.is_active:
+								run_type = BUTTON_TEXT_TO_ALG_TYPE[button.text]
 				
 
 						if self.network.size != input_values["network_size"]:
@@ -115,7 +132,8 @@ class App:
 							mutation_rate=self.mutation_rate,
 							selection_type=selection_button_type,
 							crossover_type=crosover_button_type,
-							mutation_type=mutation_button_type
+							mutation_type=mutation_button_type,
+							run_type=run_type
 						)
 						print(self.genetic_algorithm)
 
@@ -129,10 +147,10 @@ class App:
 							self.genetic_algorithm.base_mutation_rate = float(input_values["mutation_rate"])
 							self.genetic_algorithm.mutation_rate = float(input_values["mutation_rate"])
 					
-					if clicked_element.text == "Stop":
+					elif clicked_element.text == "Stop":
 						self.genetic_algorithm.is_running = False
 
-					if clicked_element.text == "Reset":
+					elif clicked_element.text == "Reset":
 						self.genetic_algorithm.is_running = False
 						self.control_panel.graphic.clear()
 						self.network.reset()
@@ -154,10 +172,23 @@ class App:
 							self.genetic_algorithm.base_mutation_rate = float(input_values["mutation_rate"])
 							self.genetic_algorithm.mutation_rate = float(input_values["mutation_rate"])
 
-					if clicked_element.text == "Exit":
+					elif clicked_element.text == "Exit":
 						self.running = False
 						pygame.quit()
 						return
+
+				elif button.btype == ButtonType.RUN_TYPE:
+					
+					if clicked_element.text == "Cicle":
+						for button in self.control_panel.buttons:
+							if button.text == "Step":
+								button.is_active = False
+						clicked_element.is_active = True
+					if clicked_element.text == "Step":
+						for button in self.control_panel.buttons:
+							if button.text == "Cicle":
+								button.is_active = False
+						clicked_element.is_active = True
 
 			if type(clicked_element) == Input:
 				for input in self.control_panel.inputs:

@@ -4,6 +4,12 @@ from graph import Graphic
 from ga import SelectionType, CrossoverType, MutationType, ALG_TO_BUTTON_TEXT
 import pygame
 
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
 
 class ControlPanel:
     def __init__(
@@ -31,9 +37,9 @@ class ControlPanel:
         self.initial_mutation_rate = initial_mutation_rate
         self.initial_network_size = initial_network_size
 
-        self.title_font = pygame.font.SysFont('Arial', 24, bold=True)
-        self.title = self.title_font.render("Settings", True, (50, 50, 50))
-        self.title_rect = self.title.get_rect(centerx=int(self.panel_size.x) // 2, top=30)
+        
+
+        
         
         # Create the control surface
         self.control_surface = pygame.Surface((int(panel_size.x), int(panel_size.y)))
@@ -64,13 +70,19 @@ class ControlPanel:
     def setup_control_panel(self):
         control_button_names = [
                 [
-                    ("Start", ButtonType.CONTROL),
-                    ("Stop", ButtonType.CONTROL),
-                    ("Reset", ButtonType.CONTROL),
+                    ("Start", False, ButtonType.CONTROL),
+                    ("Stop", False, ButtonType.CONTROL),
+                    ("Reset", False, ButtonType.CONTROL),
                 ],
                 [
-                    ("Apply", ButtonType.CONTROL),
-                    ("Exit", ButtonType.CONTROL)
+                    ("Apply", False, ButtonType.CONTROL),
+                    ("Next", False, ButtonType.CONTROL),
+                    ("Exit", False, ButtonType.CONTROL),
+                ],
+                [
+                    ("Cicle", True, ButtonType.RUN_TYPE),
+                    ("Step", False, ButtonType.RUN_TYPE),
+                    
                 ]
             ]
         type_button_names = [
@@ -95,11 +107,12 @@ class ControlPanel:
 
         current_control_button_y = self.panel_pos.y + self.padding_y + 300
         for row in control_button_names:
-            for i, (name, b_type) in enumerate(row):
+            for i, (name, is_active, b_type) in enumerate(row):
                 button = Button(
                     text=name,
                     x=self.padding_x + i * (self.button_size.x + self.spacing),
                     y=current_control_button_y,
+                    is_active=is_active,
                     btype=b_type
                 )
                 self.buttons.append(button)
@@ -147,10 +160,28 @@ class ControlPanel:
 
         self.control_surface.fill((220, 220, 220))  # light gray background
 
-        self.title_font = pygame.font.SysFont('Arial', 24, bold=True)
-        self.title = self.title_font.render("Settings", True, (50, 50, 50))
-        title_rect = self.title.get_rect(centerx=int(self.panel_size.x) // 2, top=30)
-        self.control_surface.blit(self.title, title_rect)
+        title_font = pygame.font.SysFont('Arial', 24, bold=True)
+        title = title_font.render("Settings", True, (50, 50, 50))
+        title_rect = title.get_rect(centerx=int(self.panel_size.x) // 2, top=30)
+
+        author_data_font = pygame.font.SysFont('Arial', 16)
+        author_data_name = author_data_font.render("Козма Богдан Григориевич", True, (50, 50, 50))
+
+        author_student_email = author_data_font.render("kozma.bogdan02@gmail.com", True, (50, 50, 50))
+        author_student_course_link = author_data_font.render("lms.mospolytech.ru/course/view.php?id=14927", True, (50, 50, 50))
+        author_student_year = author_data_font.render("2026", True, (50, 50, 50))
+        
+        author_data_rect = author_data_name.get_rect(x=250, y=100 + 50)
+        author_student_email_rect = author_student_email.get_rect(x=250, y=116 + 50)
+        author_student_course_link_rect = author_student_course_link.get_rect(x=250, y=132 + 50)
+        author_student_year_rect = author_student_year.get_rect(x=250, y=148 + 50)
+
+
+        self.control_surface.blit(author_data_name, author_data_rect)
+        self.control_surface.blit(author_student_email, author_student_email_rect)
+        self.control_surface.blit(author_student_course_link, author_student_course_link_rect)
+        self.control_surface.blit(author_student_year, author_student_year_rect)
+        self.control_surface.blit(title, title_rect)
 
         # Draw all input fields
         for input_field in self.inputs:
@@ -161,7 +192,7 @@ class ControlPanel:
             button.draw(self.control_surface)
         
         # separator line
-        pygame.draw.line(self.control_surface, (255, 255, 255), (0, 480), (self.panel_size.x, 480), 1)
+        #pygame.draw.line(self.control_surface, (255, 255, 255), (0, 480), (self.panel_size.x, 480), 1)
         pygame.draw.line(self.control_surface, (255, 255, 255), (0, 645), (self.panel_size.x, 645), 1)
 
         

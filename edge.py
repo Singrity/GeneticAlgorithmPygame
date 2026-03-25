@@ -1,5 +1,12 @@
 import pygame
 
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
+
 class Edge:
     def __init__(self, node_a, node_b, weight):
         self.node_a = node_a

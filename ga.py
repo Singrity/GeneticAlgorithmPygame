@@ -5,6 +5,13 @@ import pygame
 from chromosome import Chromosome
 from enum import Enum, auto
 
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
+
 class SelectionType(Enum):
     PROPORTIONAL = auto()
     TOURNAMENT = auto()
@@ -18,6 +25,10 @@ class CrossoverType(Enum):
 class MutationType(Enum):
     BIT_FLIP = auto()
     GAUSSIAN = auto()
+
+class RunType(Enum):
+    CICLE = auto()
+    STEP = auto()
 
 ALG_TO_BUTTON_TEXT = {
     SelectionType.PROPORTIONAL: "prop",
@@ -38,7 +49,10 @@ BUTTON_TEXT_TO_ALG_TYPE = {
     "two": CrossoverType.TWO_POINT,
     "uni": CrossoverType.UNIFORM,
     "bit": MutationType.BIT_FLIP,
-    "gaus": MutationType.GAUSSIAN 
+    "gaus": MutationType.GAUSSIAN,
+    "Cicle": RunType.CICLE,
+    "Step": RunType.STEP
+     
 }
 
 
@@ -50,12 +64,15 @@ class GA:
                 mutation_rate: float = 0.01,
                 selection_type: SelectionType = SelectionType.PROPORTIONAL,
                 crossover_type: CrossoverType = CrossoverType.ONE_POINT,
-                mutation_type: MutationType = MutationType.BIT_FLIP
+                mutation_type: MutationType = MutationType.BIT_FLIP,
+                run_type: RunType = RunType.CICLE
     ):
 
         self.selection_type = selection_type
         self.crossover_type = crossover_type
         self.mutation_type = mutation_type       
+
+        self.run_type = run_type   
 
         self.network = network
         self.population_size = population_size
@@ -79,7 +96,10 @@ class GA:
 
         self.is_running = False
 
+        self.next_step = False
+
         self.min_edge_weight = self.network.get_min_edge_weight()
+
 
     def create_random_chromosome(self):
         actual_length = min(self.chromosome_length, self.network.size)
@@ -299,7 +319,6 @@ class GA:
         self.best_fitness_ever = self.best_chromosome.fitness
 
     def run_algorithm(self):
-
         self.is_running = True
         # Advance a single generation each call so the main loop can control updates
         if self.current_generation_number >= self.generations or self.best_chromosome.fitness <= self.min_edge_weight:
@@ -355,6 +374,9 @@ class GA:
        
         self.current_generation_number += 1
         print(self.current_generation_number - 1, self.best_chromosome)
+        if self.run_type == RunType.STEP:
+            self.next_step = False
+    
 
     def calculate_diversity(self):
         """

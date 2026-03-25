@@ -1,5 +1,11 @@
 import pygame
 
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
 
 class Graphic:
     def __init__(self, x, y, width, height):

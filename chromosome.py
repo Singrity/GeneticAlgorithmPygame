@@ -1,3 +1,10 @@
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
+
 class Chromosome:
     def __init__(self, genes):
         self.genes = genes

@@ -2,11 +2,20 @@ import pygame
 from enum import Enum, auto
 from ga import ALG_TO_BUTTON_TEXT
 
+
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
+
 class ButtonType(Enum):
     CONTROL = auto()
     SELECTION_TYPE = auto()
     CROSOVER_TYPE = auto()
     MUTATION_TYPE = auto()
+    RUN_TYPE = auto()
 
 
 
@@ -17,7 +26,7 @@ class Button:
         self.btype = btype
         if self.btype == ButtonType.CONTROL:
             self.rect = pygame.Rect(x, y, 150, 35)
-        elif self.btype == ButtonType.SELECTION_TYPE or self.btype == ButtonType.CROSOVER_TYPE or self.btype == ButtonType.MUTATION_TYPE:
+        elif self.btype == ButtonType.SELECTION_TYPE or self.btype == ButtonType.CROSOVER_TYPE or self.btype == ButtonType.MUTATION_TYPE or self.btype == ButtonType.RUN_TYPE:
             self.rect = pygame.Rect(x, y, 130, 25)
             self.active_rect = pygame.Rect(x - 5, y - 5, self.rect.width + 10, self.rect.height + 10)
         self.is_active = is_active

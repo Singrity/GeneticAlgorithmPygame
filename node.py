@@ -1,5 +1,12 @@
 import pygame
 
+"""
+Козма Богдан Григориевич
+kozma.bogdan02@gmail.com
+https://lms.mospolytech.ru/mod/assign/view.php?id=487354
+2026
+"""
+
 class Node:
     def __init__(self, x, y, idx, is_start=False, is_end=False):
         self.idx = idx
